@@ -96,16 +96,24 @@ export const updateProfile = async (req, res) => {
     const { profilePic } = req.body;
     const userId = req.user._id;
 
-    if (!profilePic) {
+    if (!profilePic || typeof profilePic !== "string") {
       return res.status(400).json({ message: "Profile pic is required" });
     }
 
-    const uploadResponse = await cloudinary.uploader.upload(profilePic);
+    const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+      folder: "chat_app_avatars",
+      resource_type: "image",
+    });
+
+    if (!uploadResponse?.secure_url) {
+      return res.status(500).json({ message: "Image upload failed" });
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { profilePic: uploadResponse.secure_url },
       { new: true }
-    );
+    ).select("-password");
 
     res.status(200).json(updatedUser);
   } catch (error) {
