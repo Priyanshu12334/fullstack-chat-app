@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
+import { useSearchParams } from "react-router-dom";
 import { Users, Loader } from "lucide-react";
 
 const Sidebar = () => {
-  const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } = useChatStore();
+  const { getUsers, users, selectedUser, isUsersLoading } = useChatStore();
   const { authUser, onlineUsers } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+  const [, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     getUsers();
@@ -40,50 +42,41 @@ const Sidebar = () => {
       </div>
 
       <div className="overflow-y-auto w-full py-3 divide-y divide-base-300/40 flex-1">
-        {isUsersLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-2">
-            <Loader className="size-6 animate-spin text-primary" />
-            <span className="text-xs text-base-content/40">Loading contacts...</span>
-          </div>
-        ) : (
-          <>
-            {filteredUsers.map((user) => (
-              <button
-                key={user._id}
-                onClick={() => setSelectedUser(user)}
-                className={`
-                  w-full p-3 flex items-center gap-3
-                  hover:bg-base-200 transition-all duration-150
-                  ${selectedUser?._id === user._id ? "bg-base-300" : ""}
-                `}
-              >
-                <div className="relative">
-                  <img
-                    src={user.profilePic || "/avatar.png"}
-                    alt={user.name}
-                    className="size-12 object-cover rounded-full border border-base-300 shadow-sm"
-                  />
-                  {onlineUsers.includes(user._id) && (
-                    <span
-                      className="absolute bottom-0 right-0 size-3.5 bg-green-500 
-                      rounded-full ring-2 ring-base-100"
-                    />
-                  )}
-                </div>
+        {filteredUsers.map((user) => (
+          <button
+            key={user._id}
+            onClick={() => setSearchParams({ chat: user._id })}
+            className={`
+              w-full p-3 flex items-center gap-3
+              hover:bg-base-200 transition-all duration-150
+              ${selectedUser?._id === user._id ? "bg-base-300" : ""}
+            `}
+          >
+            <div className="relative">
+              <img
+                src={user.profilePic || "/avatar.png"}
+                alt={user.name}
+                className="size-12 object-cover rounded-full border border-base-300 shadow-sm"
+              />
+              {onlineUsers.includes(user._id) && (
+                <span
+                  className="absolute bottom-0 right-0 size-3.5 bg-green-500 
+                  rounded-full ring-2 ring-base-100"
+                />
+              )}
+            </div>
 
-                <div className="text-left min-w-0 flex-1">
-                  <div className="font-medium truncate text-base-content">{user.fullName}</div>
-                  <div className="text-xs text-base-content/50 mt-0.5">
-                    {onlineUsers.includes(user._id) ? "Online" : "Offline"}
-                  </div>
-                </div>
-              </button>
-            ))}
+            <div className="text-left min-w-0 flex-1">
+              <div className="font-medium truncate text-base-content">{user.fullName}</div>
+              <div className="text-xs text-base-content/50 mt-0.5">
+                {onlineUsers.includes(user._id) ? "Online" : "Offline"}
+              </div>
+            </div>
+          </button>
+        ))}
 
-            {filteredUsers.length === 0 && (
-              <div className="text-center text-zinc-500 py-8">No online users</div>
-            )}
-          </>
+        {filteredUsers.length === 0 && !isUsersLoading && (
+          <div className="text-center text-zinc-500 py-8">No online users</div>
         )}
       </div>
     </aside>

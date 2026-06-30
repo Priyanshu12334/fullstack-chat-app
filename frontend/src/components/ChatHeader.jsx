@@ -1,10 +1,12 @@
 import { ChevronLeft } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
+import { useSearchParams } from "react-router-dom";
 
 const ChatHeader = () => {
-  const { selectedUser, setSelectedUser } = useChatStore();
+  const { selectedUser } = useChatStore();
   const { onlineUsers } = useAuthStore();
+  const [, setSearchParams] = useSearchParams();
 
   return (
     <div className="p-2.5 border-b border-base-300">
@@ -13,7 +15,7 @@ const ChatHeader = () => {
           
           {/* Mobile Back Button */}
           <button 
-            onClick={() => setSelectedUser(null)} 
+            onClick={() => setSearchParams({})} 
             className="md:hidden p-1 hover:bg-base-200 rounded-full transition-colors"
             aria-label="Go back"
           >
@@ -38,7 +40,7 @@ const ChatHeader = () => {
 
         {/* Desktop Close button */}
         <button 
-          onClick={() => setSelectedUser(null)}
+          onClick={() => setSearchParams({})}
           className="hidden md:block p-1.5 hover:bg-base-200 rounded-full transition-colors text-base-content/60 hover:text-base-content"
           aria-label="Close chat"
         >

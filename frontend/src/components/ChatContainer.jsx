@@ -59,19 +59,6 @@ const ChatContainer = () => {
     }
   };
 
-  if (isMessagesLoading && messages.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col overflow-auto bg-base-100">
-        <ChatHeader />
-        <div className="flex-1 flex flex-col items-center justify-center gap-2">
-          <Loader className="size-8 animate-spin text-primary" />
-          <span className="text-xs text-base-content/40">Loading messages...</span>
-        </div>
-        <MessageInput />
-      </div>
-    );
-  }
-
   return (
     <div
       className="flex-1 flex flex-col overflow-auto"

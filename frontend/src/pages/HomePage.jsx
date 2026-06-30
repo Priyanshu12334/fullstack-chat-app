@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useChatStore } from "../store/useChatStore";
 
 import Sidebar from "../components/Sidebar";
@@ -5,7 +7,20 @@ import NoChatSelected from "../components/NoChatSelected";
 import ChatContainer from "../components/ChatContainer";
 
 const HomePage = () => {
-  const { selectedUser } = useChatStore();
+  const { selectedUser, setSelectedUser, users } = useChatStore();
+  const [searchParams] = useSearchParams();
+  const chatParam = searchParams.get("chat");
+
+  useEffect(() => {
+    if (chatParam) {
+      const user = users.find((u) => u._id === chatParam);
+      if (user) {
+        setSelectedUser(user);
+      }
+    } else {
+      setSelectedUser(null);
+    }
+  }, [chatParam, users, setSelectedUser]);
 
   return (
     <div className="h-screen bg-base-200 overflow-hidden">
