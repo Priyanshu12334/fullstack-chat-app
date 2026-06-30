@@ -7,6 +7,8 @@ import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
 import { Trash2, Loader } from "lucide-react";
 
+import MessageSkeleton from "./skeletons/MessageSkeleton";
+
 const ChatContainer = () => {
   const {
     messages,
@@ -58,6 +60,16 @@ const ChatContainer = () => {
       setActiveId(null);
     }
   };
+
+  if (isMessagesLoading && messages.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col overflow-auto bg-base-100">
+        <ChatHeader />
+        <MessageSkeleton />
+        <MessageInput />
+      </div>
+    );
+  }
 
   return (
     <div
