@@ -43,6 +43,17 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  deleteMessage: async (messageId) => {
+    const id = String(messageId); // ObjectId from socket may not be a plain string
+    try {
+      await api.delete(`/messages/${id}`);
+      set({ messages: get().messages.filter((m) => String(m._id) !== id) });
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to delete message");
+    }
+  },
+
+
   subscribeToMessages: () => {
     const { selectedUser } = get();
     if (!selectedUser) return;
@@ -52,16 +63,19 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", (newMessage) => {
       const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
       if (!isMessageSentFromSelectedUser) return;
+      set({ messages: [...get().messages, newMessage] });
+    });
 
-      set({
-        messages: [...get().messages, newMessage],
-      });
+    // Real-time delete: remove message from UI when sender deletes it
+    socket.on("messageDeleted", (messageId) => {
+      set({ messages: get().messages.filter((m) => m._id !== messageId) });
     });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
     socket.off("newMessage");
+    socket.off("messageDeleted");
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),
