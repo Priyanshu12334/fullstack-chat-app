@@ -9,6 +9,7 @@ export const useChatStore = create((set, get) => ({
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
+  messagesCache: {},
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -23,36 +24,89 @@ export const useChatStore = create((set, get) => ({
   },
 
   getMessages: async (userId) => {
-    set({ isMessagesLoading: true });
+    const { messagesCache } = get();
+    
+    if (messagesCache[userId]) {
+      set({ messages: messagesCache[userId], isMessagesLoading: false });
+    } else {
+      set({ messages: [], isMessagesLoading: true });
+    }
+
     try {
       const res = await api.get(`/messages/${userId}`);
-      set({ messages: res.data });
+      set((state) => ({
+        messages: res.data,
+        messagesCache: { ...state.messagesCache, [userId]: res.data }
+      }));
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Failed to fetch messages");
     } finally {
       set({ isMessagesLoading: false });
     }
   },
+
   sendMessage: async (messageData) => {
-    const { selectedUser, messages } = get();
+    const { selectedUser, messages, messagesCache } = get();
+    const currentUser = useAuthStore.getState().authUser;
+    if (!selectedUser || !currentUser) return;
+
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      _id: tempId,
+      senderId: currentUser._id,
+      receiverId: selectedUser._id,
+      text: messageData.text || "",
+      image: messageData.image || null,
+      createdAt: new Date().toISOString(),
+      isSending: true,
+    };
+
+    const updatedMessages = [...messages, optimisticMessage];
+    set((state) => ({
+      messages: updatedMessages,
+      messagesCache: { ...state.messagesCache, [selectedUser._id]: updatedMessages }
+    }));
+
     try {
       const res = await api.post(`/messages/send/${selectedUser._id}`, messageData);
-      set({ messages: [...messages, res.data] });
+      
+      set((state) => {
+        const confirmedMessages = state.messages.map((m) =>
+          m._id === tempId ? res.data : m
+        );
+        return {
+          messages: confirmedMessages,
+          messagesCache: { ...state.messagesCache, [selectedUser._id]: confirmedMessages }
+        };
+      });
     } catch (error) {
-      toast.error(error.response.data.message);
+      set((state) => {
+        const rollbackMessages = state.messages.filter((m) => m._id !== tempId);
+        return {
+          messages: rollbackMessages,
+          messagesCache: { ...state.messagesCache, [selectedUser._id]: rollbackMessages }
+        };
+      });
+      toast.error(error.response?.data?.message || "Failed to send message");
     }
   },
 
   deleteMessage: async (messageId) => {
-    const id = String(messageId); // ObjectId from socket may not be a plain string
+    const id = String(messageId);
+    const { selectedUser } = get();
     try {
       await api.delete(`/messages/${id}`);
-      set({ messages: get().messages.filter((m) => String(m._id) !== id) });
+      const filtered = get().messages.filter((m) => String(m._id) !== id);
+      set((state) => ({
+        messages: filtered,
+        messagesCache: selectedUser 
+          ? { ...state.messagesCache, [selectedUser._id]: filtered }
+          : state.messagesCache
+      }));
     } catch (error) {
       toast.error(error.response?.data?.error || "Failed to delete message");
     }
   },
-
 
   subscribeToMessages: () => {
     const { selectedUser } = get();
@@ -63,12 +117,20 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", (newMessage) => {
       const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
       if (!isMessageSentFromSelectedUser) return;
-      set({ messages: [...get().messages, newMessage] });
+
+      const updated = [...get().messages, newMessage];
+      set((state) => ({
+        messages: updated,
+        messagesCache: { ...state.messagesCache, [selectedUser._id]: updated }
+      }));
     });
 
-    // Real-time delete: remove message from UI when sender deletes it
     socket.on("messageDeleted", (messageId) => {
-      set({ messages: get().messages.filter((m) => m._id !== messageId) });
+      const filtered = get().messages.filter((m) => String(m._id) !== String(messageId));
+      set((state) => ({
+        messages: filtered,
+        messagesCache: { ...state.messagesCache, [selectedUser._id]: filtered }
+      }));
     });
   },
 
