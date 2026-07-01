@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, User } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare, User, AtSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -9,6 +9,7 @@ const SignUpPage = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
+    username: "",
     password: "",
   });
 
@@ -16,6 +17,13 @@ const SignUpPage = () => {
 
   const validateForm = () => {
     if (!formData.fullName.trim()) return toast.error("Full name is required");
+    if (!formData.username.trim()) return toast.error("Username is required");
+    
+    const usernameRegex = /^[a-z0-9_.]+$/;
+    if (!usernameRegex.test(formData.username.trim().toLowerCase())) {
+      return toast.error("Username can only contain lowercase letters, numbers, underscores, and dots without spaces");
+    }
+    
     if (!formData.email.trim()) return toast.error("Email is required");
     if (!/\S+@\S+\.\S+/.test(formData.email)) return toast.error("Invalid email format");
     if (!formData.password) return toast.error("Password is required");
@@ -27,7 +35,12 @@ const SignUpPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const success = validateForm();
-    if (success === true) signup(formData);
+    if (success === true) {
+      signup({
+        ...formData,
+        username: formData.username.trim().toLowerCase()
+      });
+    }
   };
 
   return (
@@ -60,6 +73,24 @@ const SignUpPage = () => {
                 placeholder="Full Name"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="form-control">
+            <label className="label py-1">
+              <span className="label-text font-medium text-xs">Username</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <AtSign className="size-4.5 text-base-content/40" />
+              </div>
+              <input
+                type="text"
+                className="input input-bordered h-11 w-full !pl-10 rounded-xl text-sm transition-all focus:border-primary"
+                placeholder="username"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               />
             </div>
           </div>

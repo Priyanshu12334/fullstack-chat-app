@@ -4,9 +4,9 @@ import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
 
 export const signup = async (req, res) => {
-  const { fullName, email, password } = req.body;
+  const { fullName, email, username, password } = req.body;
   try {
-    if (!fullName || !email || !password) {
+    if (!fullName || !email || !username || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -14,9 +14,17 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
-    const user = await User.findOne({ email });
+    const emailUser = await User.findOne({ email });
+    if (emailUser) return res.status(400).json({ message: "Email already exists" });
 
-    if (user) return res.status(400).json({ message: "Email already exists" });
+    const sanitizedUsername = username.trim().toLowerCase();
+    const usernameRegex = /^[a-z0-9_.]+$/;
+    if (!usernameRegex.test(sanitizedUsername)) {
+      return res.status(400).json({ message: "Username can only contain lowercase letters, numbers, underscores, and dots" });
+    }
+
+    const usernameUser = await User.findOne({ username: sanitizedUsername });
+    if (usernameUser) return res.status(400).json({ message: "Username already taken" });
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -24,11 +32,12 @@ export const signup = async (req, res) => {
     const newUser = new User({
       fullName,
       email,
+      username: sanitizedUsername,
       password: hashedPassword,
+      bio: "",
     });
 
     if (newUser) {
-      // generate jwt token here
       generateToken(newUser._id, res);
       await newUser.save();
 
@@ -36,7 +45,10 @@ export const signup = async (req, res) => {
         _id: newUser._id,
         fullName: newUser.fullName,
         email: newUser.email,
+        username: newUser.username,
+        bio: newUser.bio,
         profilePic: newUser.profilePic,
+        createdAt: newUser.createdAt,
       });
     } else {
       res.status(400).json({ message: "Invalid user data" });
@@ -50,7 +62,12 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      $or: [
+        { email: email },
+        { username: email.toLowerCase() }
+      ]
+    });
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -67,7 +84,10 @@ export const login = async (req, res) => {
       _id: user._id,
       fullName: user.fullName,
       email: user.email,
+      username: user.username,
+      bio: user.bio || "",
       profilePic: user.profilePic,
+      createdAt: user.createdAt,
     });
   } catch (error) {
     console.log("Error in login controller", error.message);
@@ -93,25 +113,51 @@ export const logout = (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { profilePic } = req.body;
+    const { profilePic, fullName, username, bio } = req.body;
     const userId = req.user._id;
 
-    if (!profilePic || typeof profilePic !== "string") {
-      return res.status(400).json({ message: "Profile pic is required" });
+    const updateData = {};
+
+    if (fullName) {
+      if (fullName.trim().length === 0) {
+        return res.status(400).json({ message: "Full name cannot be empty" });
+      }
+      updateData.fullName = fullName.trim();
     }
 
-    const uploadResponse = await cloudinary.uploader.upload(profilePic, {
-      folder: "chat_app_avatars",
-      resource_type: "image",
-    });
+    if (username) {
+      const sanitizedUsername = username.trim().toLowerCase();
+      const usernameRegex = /^[a-z0-9_.]+$/;
+      if (!usernameRegex.test(sanitizedUsername)) {
+        return res.status(400).json({ message: "Username can only contain lowercase letters, numbers, underscores, and dots" });
+      }
 
-    if (!uploadResponse?.secure_url) {
-      return res.status(500).json({ message: "Image upload failed" });
+      const existingUser = await User.findOne({ username: sanitizedUsername });
+      if (existingUser && existingUser._id.toString() !== userId.toString()) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+      updateData.username = sanitizedUsername;
+    }
+
+    if (bio !== undefined) {
+      updateData.bio = bio.trim();
+    }
+
+    if (profilePic) {
+      const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+        folder: "chat_app_avatars",
+        resource_type: "image",
+      });
+
+      if (!uploadResponse?.secure_url) {
+        return res.status(500).json({ message: "Image upload failed" });
+      }
+      updateData.profilePic = uploadResponse.secure_url;
     }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { profilePic: uploadResponse.secure_url },
+      updateData,
       { new: true }
     ).select("-password");
 

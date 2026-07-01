@@ -5,13 +5,16 @@ ChatCrypt is a modern full-stack realtime chat application built with the MERN s
 ## 🚀 Features
 
 * 🔐 Secure Authentication & Authorization using JWT
+* 👤 Unique Username System for user discovery
+* 🔍 Search Users by Username and Start Conversations
+* 🔑 Login using Email or Username
+* ✏️ Editable User Profile (Name, Username, Bio & Profile Picture)
 * 💬 Realtime Messaging with Socket.io
 * 🟢 Online User Status Tracking
-* 📷 Image Upload Support with Cloudinary
 * 🎨 Modern UI built with Tailwind CSS
 * ⚡ Fast and Responsive User Experience
 * 🗄️ MongoDB Database Integration
-* 🔒 Protected Routes and User Sessions
+* 🔒 Protected Routes and Persistent User Sessions
 
 ## 🛠️ Tech Stack
 
@@ -61,6 +64,10 @@ git clone https://github.com/your-username/chatcrypt.git
 cd chatcrypt
 ```
 
+## 🌐 Live Demo
+
+- **Live Application:** https://fullstack-chat-app-seven-tawny.vercel.app
+
 Install dependencies:
 
 ```bash
@@ -92,10 +99,6 @@ npm run dev
 ```
 
 ---
-
-## 📸 Screenshots
-
-Add your application screenshots here.
 
 ---
 

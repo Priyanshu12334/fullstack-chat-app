@@ -34,16 +34,16 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="form-control">
             <label className="label py-1">
-              <span className="label-text font-medium text-xs">Email</span>
+              <span className="label-text font-medium text-xs">Email or Username</span>
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Mail className="h-4.5 w-4.5 text-base-content/40" />
               </div>
               <input
-                type="email"
+                type="text"
                 className="input input-bordered h-11 w-full !pl-10 rounded-xl text-sm transition-all focus:border-primary"
-                placeholder="you@example.com"
+                placeholder="you@example.com or username"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />

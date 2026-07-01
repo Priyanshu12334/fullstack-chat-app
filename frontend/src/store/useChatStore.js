@@ -140,5 +140,35 @@ export const useChatStore = create((set, get) => ({
     socket.off("messageDeleted");
   },
 
-  setSelectedUser: (selectedUser) => set({ selectedUser }),
+  setSelectedUser: (selectedUser) => {
+    if (selectedUser) {
+      const { users } = get();
+      if (!users.some((u) => u._id === selectedUser._id)) {
+        set({ users: [selectedUser, ...users] });
+      }
+    }
+    set({ selectedUser });
+  },
+
+  searchQuery: "",
+  searchResults: [],
+  isSearching: false,
+
+  searchUsersByUsername: async (query) => {
+    if (!query.trim()) {
+      set({ searchResults: [], searchQuery: "" });
+      return;
+    }
+    set({ isSearching: true, searchQuery: query });
+    try {
+      const res = await api.get(`/messages/search?query=${encodeURIComponent(query)}`);
+      set({ searchResults: res.data });
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Error searching users");
+    } finally {
+      set({ isSearching: false });
+    }
+  },
+
+  clearSearch: () => set({ searchResults: [], searchQuery: "" }),
 }));

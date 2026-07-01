@@ -105,3 +105,23 @@ export const deleteMessage = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const searchUsers = async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    const myId = req.user._id;
+    const users = await User.find({
+      _id: { $ne: myId },
+      username: { $regex: query, $options: "i" }
+    }).select("-password");
+
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error in searchUsers controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
